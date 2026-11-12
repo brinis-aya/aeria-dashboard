@@ -1,0 +1,50 @@
+name: CI and Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Build for GitHub Pages
+        run: npm run build
+        env:
+          PAGES_BASE: /aeria-dashboard/
+      - name: Accessibility (axe-core, WCAG 2.1 AA) on every page
+        run: |
+          npm install --no-save @playwright/test@1.49.1 @axe-core/playwright@4.10.1
+          npx playwright install --with-deps chromium
+          PAGES_BASE=/aeria-dashboard/ npx vite preview --port 4173 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/aeria-dashboard/ > /dev/null && break; sleep 2; done
+          npx playwright test e2e
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: dist
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
