@@ -1,6 +1,6 @@
 :root {
   --bg: #f6f7f9; --surface: #ffffff; --ink: #1f2328; --ink-2: #57606a; --line: #d8dee4; --grid: #e6e9ed;
-  --accent: #2a78d6; --accent-ink: #ffffff; --hover: rgba(42, 120, 214, 0.08);
+  --accent: #1d66bd; --accent-ink: #ffffff; --hover: rgba(29, 102, 189, 0.08);  /* 5.3:1 on --bg, 5.7:1 under white text */
   --ok: #0a7d32; --warn: #8a5a00; --bad: #b42318; --radius: 10px;
   color-scheme: light;
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
@@ -9,7 +9,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0f1216; --surface: #171b21; --ink: #e8eaed; --ink-2: #a3acb8; --line: #2c333c; --grid: #262c34;
-    --accent: #4a90e2; --hover: rgba(74, 144, 226, 0.14); --ok: #5cc27a; --warn: #e8b84a; --bad: #f07b72;
+    --accent: #4a90e2; --accent-ink: #0f1216; --hover: rgba(74, 144, 226, 0.14);  /* dark ink on accent: 5.7:1 */ --ok: #5cc27a; --warn: #e8b84a; --bad: #f07b72;
     color-scheme: dark;
   }
 }
