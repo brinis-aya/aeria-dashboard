@@ -58,10 +58,12 @@ Stack: React 18, React Router, react-leaflet (OpenStreetMap tiles), Recharts, Vi
 
 ## Run
 
+Nothing to install to look at it: open the live site above. To run it locally (Node.js 18+, CI uses 22):
+
 ```bash
 npm install
-npm run dev                         # http://localhost:5173
-npm test                            # unit tests (scale, data shaping, components, colour contrast)
+npm run dev                         # http://localhost:5173  (data are committed, no backend needed)
+npm test                            # 15 unit tests (scale, data shaping, components, colour contrast)
 python scripts/export_data.py       # refresh public/data from a running Aeria platform
 ```
 
