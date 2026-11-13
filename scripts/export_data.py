@@ -7,7 +7,7 @@ Sources: the warehouse (module 2), the forecast API (module 3), the back-office 
 The JSON snapshot is committed, so the dashboard works as a static site (GitHub Pages) without any backend.
 
 Station coordinates: the LCSQA open data has no coordinates, so each station is placed at the centre of its
-town (geocoded with api-adresse.data.gouv.fr), slightly spread when several stations share a town. The
+town (geocoded once with the national geocoder, see towns.json), slightly spread when several stations share a town. The
 dashboard says so: positions are indicative.
 """
 from __future__ import annotations
@@ -39,10 +39,21 @@ TOWNS = {
 }
 
 
+TOWNS_FILE = Path(__file__).with_name("towns.json")  # town centres, geocoded once and committed
+
+
+def load_towns() -> dict:
+    if TOWNS_FILE.exists():
+        return {t: tuple(c) for t, c in json.loads(TOWNS_FILE.read_text(encoding="utf-8")).items()}
+    return {}
+
+
 def geocode(town: str, cache: dict) -> tuple[float, float]:
+    """Town centre: from towns.json, else the national geocoder (Géoplateforme, ex api-adresse)."""
     if town not in cache:
-        r = requests.get("https://api-adresse.data.gouv.fr/search/",
+        r = requests.get("https://data.geopf.fr/geocodage/search",
                          params={"q": town, "type": "municipality", "limit": 1}, timeout=30)
+        r.raise_for_status()
         lon, lat = r.json()["features"][0]["geometry"]["coordinates"]
         cache[town] = (round(lat, 5), round(lon, 5))
     return cache[town]
@@ -99,7 +110,7 @@ def main() -> None:
             WHERE usable AND ts_utc >= (SELECT max(ts_utc) FROM dw.v_measurement WHERE is_reference) - interval '14 days'
             ORDER BY station_code, pollutant, ts_utc""")
 
-    cache: dict = {}
+    cache: dict = load_towns()
     by_town: dict[str, int] = {}
     for s in stations:
         if s["is_reference"]:
@@ -153,7 +164,7 @@ def main() -> None:
             {"name": "LCSQA / Geod'air - données temps réel", "licence": "Licence Ouverte 2.0",
              "url": "https://www.data.gouv.fr/fr/datasets/donnees-temps-reel-de-mesure-des-concentrations-de-polluants-atmospheriques-reglementes-1/"},
             {"name": "Open-Meteo (prévisions météo du modèle)", "licence": "CC BY 4.0", "url": "https://open-meteo.com"},
-            {"name": "Géocodage des communes : api-adresse.data.gouv.fr", "licence": "Licence Ouverte 2.0",
+            {"name": "Géocodage des communes : Géoplateforme (IGN), ex api-adresse", "licence": "Licence Ouverte 2.0",
              "url": "https://adresse.data.gouv.fr"},
             {"name": "Fond de carte © contributeurs OpenStreetMap", "licence": "ODbL", "url": "https://www.openstreetmap.org/copyright"},
         ]})

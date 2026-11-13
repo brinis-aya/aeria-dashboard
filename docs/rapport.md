@@ -54,8 +54,8 @@ Le site est **statique**. Un script exporte un instantané JSON depuis les autre
 
 Ce choix rend le site hébergeable gratuitement (GitHub Pages), sans serveur ni base exposée. C'est aussi une
 mesure de sécurité cohérente avec le module 5 : le public ne touche jamais l'API authentifiée du
-back-office. La contrepartie est un instantané, et non du temps réel. Le script d'export est prêt pour une
-exécution planifiée.
+back-office. La contrepartie est un instantané, et non du temps réel. Il est régénéré chaque matin par GitHub Actions
+(voir §5).
 
 **Coordonnées des stations.** Les données ouvertes du LCSQA ne contiennent pas de coordonnées. Chaque station
 est placée au centre de sa commune, géocodée avec l'API Adresse (data.gouv.fr), légèrement écartée quand
@@ -107,8 +107,10 @@ précision inventée.
   le site lui-même. Reproduire le système visuel dans Figma serait utile pour une équipe de design.
 - **Test utilisateur** : le protocole (5 participants, 3 tâches, questionnaire SUS) est prêt mais n'a pas été
   mené. C'est la prochaine étape, avant toute nouvelle fonctionnalité.
-- **Temps réel** : l'instantané pourrait être régénéré chaque heure par une tâche planifiée, ou remplacé par
-  une API publique en lecture seule placée derrière un cache.
+- **Fraîcheur** : depuis la mise en ligne, une tâche GitHub Actions régénère l'instantané **chaque matin** avec
+  les vrais modules. Le pipeline charge les 125 derniers jours de mesures officielles, l'API de prévision
+  calcule l'indice suivant, puis le site est redéployé. Le parc de capteurs garde son dernier export. Un
+  rafraîchissement horaire demanderait une API publique en lecture seule placée derrière un cache.
 - **Notifications** : « prévenez-moi la veille si l'air sera dégradé près de chez moi » est la fonctionnalité
   que les personas réclament le plus. Elle demande un service d'envoi et la gestion du consentement (RGPD).
 

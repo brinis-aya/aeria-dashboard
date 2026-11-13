@@ -51,8 +51,13 @@ modules into `public/data/`, and the React app reads it.
 | Forecast API (module 3) | tomorrow's index and the backtest metrics |
 | Back-office API (module 4) | the sensor fleet |
 
+**Every morning** a GitHub Actions job ([`refresh-data.yml`](.github/workflows/refresh-data.yml)) rebuilds
+the snapshot with the real modules: the pipeline loads the last 125 days of official measurements into a
+warehouse, the forecast API computes the next index, and the site is redeployed. The sensor fleet keeps its
+last export (the back-office is not run in CI).
+
 Station coordinates are not published with the open data, so each station is placed at the centre of its
-town, geocoded with api-adresse.data.gouv.fr. The map says so.
+town (coordinates in [`scripts/towns.json`](scripts/towns.json), from the national geocoder). The map says so.
 
 Stack: React 18, React Router, react-leaflet (OpenStreetMap tiles), Recharts, Vite.
 
