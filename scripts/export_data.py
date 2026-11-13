@@ -142,7 +142,10 @@ def main() -> None:
     write("hourly.json", {"start": hours[0], "count": len(hours), "series": hourly})
     write("forecast.json", {"forecasts": forecast, "backtest": model.get("backtest", {}),
                             "trained_until": model.get("trained_until")})
-    write("fleet.json", {"sensors": fleet, "indicators": kpi})
+    if a.backoffice_password:
+        write("fleet.json", {"sensors": fleet, "indicators": kpi})
+    else:  # the daily CI refresh has no back-office: keep the last fleet export
+        print("fleet.json: kept (no back-office password given)")
     write("meta.json", {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="minutes"),
         "last_day": last,

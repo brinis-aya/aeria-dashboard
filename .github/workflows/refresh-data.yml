@@ -1,0 +1,74 @@
+name: Daily data refresh
+
+# Every morning: rebuild the data shown by the dashboard (and read by the mobile app) from the official
+# open data, with the real modules: pipeline (module 2) -> warehouse -> forecast API (module 3) -> snapshot.
+on:
+  schedule:
+    - cron: "30 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write   # commit the new snapshot
+  actions: write    # start the deployment workflow
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: aeria
+          POSTGRES_USER: aeria
+          POSTGRES_PASSWORD: aeria
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aeria" --health-interval 5s --health-retries 10
+    env:
+      DW_URL: postgresql://aeria:aeria@localhost:5432/aeria
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: brinis-aya/aeria-data-pipeline
+          path: _pipeline
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: brinis-aya/aeria-forecast
+          path: _forecast
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install the modules
+        run: |
+          pip install -r _forecast/requirements.txt
+          pip install -e _pipeline
+      - name: Restore the open-data cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: _lcsqa
+          key: lcsqa-${{ github.run_id }}
+          restore-keys: lcsqa-
+      - name: Module 2 - load the last 125 days of official measurements
+        run: |
+          aeria-pipeline run --sources lcsqa --cache _lcsqa --out /tmp/pipeline             --start "$(date -d '125 days ago' +%F)" --end "$(date -d 'yesterday' +%F)"
+      - name: Module 3 - forecast API on the fresh warehouse
+        working-directory: _forecast
+        run: |
+          nohup uvicorn aeria_forecast.api:app --port 8083 > /tmp/api.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8083/health && break; sleep 2; done
+          curl -sf http://127.0.0.1:8083/forecast/FR05090 || { cat /tmp/api.log; exit 1; }
+      - name: Export the snapshot
+        run: python scripts/export_data.py --forecast http://127.0.0.1:8083
+      - name: Publish if the data changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data
+          if git diff --cached --quiet; then echo "no change"; exit 0; fi
+          git commit -m "Daily data refresh $(date +%F)"
+          git push
+          gh workflow run ci.yml --ref main     # pushes made by this token do not trigger workflows by themselves
